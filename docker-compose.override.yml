@@ -1,0 +1,57 @@
+# Override file for local development
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.override.yml up
+
+# This file is automatically loaded by docker-compose, no need to specify with -f
+
+version: '3.9'
+
+services:
+  db:
+    # Override ports for local access (development only)
+    ports:
+      - "5432:5432"
+    # Reduce startup delay in development
+    healthcheck:
+      start_period: 20s  # Reduced from 40s
+      interval: 5s       # Reduced from 10s
+      retries: 3         # Reduced from 5
+    # Development: more verbose logging
+    environment:
+      POSTGRES_INITDB_ARGS: "-c log_statement=all"
+
+  web:
+    # Development: expose on all interfaces
+    ports:
+      - "3000:3000"
+    # Faster rebuilds in watch mode
+    environment:
+      NODE_ENV: development
+      TURBOPACK_ENABLED: "true"
+    # Mount source code for hot reload
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+    # Reduce health check strictness in dev
+    healthcheck:
+      start_period: 20s
+      interval: 10s
+      retries: 2
+
+  socket-server:
+    # Expose on all interfaces for development
+    ports:
+      - "4000:4000"
+    # Development mode
+    environment:
+      NODE_ENV: development
+      DEBUG: "true"
+    # Mount source code for development
+    volumes:
+      - ./socket-server:/app
+      - /app/node_modules
+    # Watch mode for auto-reload
+    command: npm run dev
+    # Reduce health check in dev
+    healthcheck:
+      start_period: 15s
+      retries: 2

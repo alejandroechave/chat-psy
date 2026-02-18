@@ -1,0 +1,41 @@
+{
+  "name": "chat-psy",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:reset": "prisma migrate reset",
+    "prisma:studio": "prisma studio",
+    "seed": "node scripts/seed.js"
+  },
+  "dependencies": {
+    "@auth/core": "^0.34.3",
+    "@auth/nextjs": "^0.0.0-380f8d56",
+    "@hookform/resolvers": "^5.2.2",
+    "@prisma/client": "^7.4.0",
+    "bcryptjs": "^3.0.3",
+    "framer-motion": "^12.34.2",
+    "lucide-react": "^0.574.0",
+    "next": "16.1.6",
+    "prisma": "^7.4.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-hook-form": "^7.71.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

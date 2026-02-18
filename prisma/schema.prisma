@@ -1,0 +1,137 @@
+// Chat Psy Database Schema
+// Crisis support platform with encrypted messaging and volunteer management
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  USER
+  VOLUNTEER
+  ADMIN
+}
+
+enum SessionStatus {
+  OPEN
+  CLOSED
+}
+
+// ============================================================================
+// MODELS
+// ============================================================================
+
+/// User model representing all system users (crisis victims, volunteers, admins)
+/// ⚠️ WARNING: Email field is sensitive PII. Ensure encryption at rest.
+/// ⚠️ WARNING: Do NOT log or expose email in client-side code.
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Relations
+  crisisSessions    CrisisSession[]
+  volunteerSessions CrisisSession[] @relation("VolunteerSessions")
+  messages          Message[]
+  volunteerProfile  VolunteerProfile?
+
+  @@index([email])
+  @@map("users")
+}
+
+/// Crisis support session tracking user-volunteer interactions
+/// ⚠️ WARNING: Session metadata may contain sensitive context. Handle with care.
+/// One User can have many CrisisSessions; one Session can have many Messages.
+model CrisisSession {
+  id        String        @id @default(cuid())
+  startTime DateTime      @default(now())
+  endTime   DateTime?
+  status    SessionStatus @default(OPEN)
+  
+  /// Foreign keys
+  userId    String
+  /// ⚠️ CAUTION: volunteerId is nullable (session may start without assigned volunteer)
+  volunteerId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Volunteer can be unassigned; setting onDelete: SetNull allows orphaned sessions
+  volunteer User?    @relation("VolunteerSessions", fields: [volunteerId], references: [id], onDelete: SetNull)
+  messages  Message[]
+
+  @@index([userId])
+  @@index([volunteerId])
+  @@index([status])
+  @@map("crisis_sessions")
+}
+
+/// Encrypted message exchanged during crisis sessions
+/// ⚠️ CRITICAL: Content field is encrypted at rest. Use encryption/decryption middleware.
+/// ⚠️ CRITICAL: Never store plaintext messages. Enforce encryption on write.
+/// ⚠️ CRITICAL: Sensitive communication between user and volunteer—audit all access.
+model Message {
+  id        String   @id @default(cuid())
+  /// Encrypted message body—do NOT display in logs without decryption
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  /// Foreign keys
+  sessionId String
+  senderId  String
+
+  /// Relations
+  session   CrisisSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sender    User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+/// Volunteer profile extension for User model
+/// ⚠️ WARNING: Specialization data may indicate volunteer training/qualifications—keep confidential.
+/// Extends User with volunteer-specific attributes; one-to-one relationship.
+model VolunteerProfile {
+  id             String   @id @default(cuid())
+  /// Volunteer specialization (e.g., "suicide prevention", "anxiety support")
+  specialization String
+  /// Track volunteer availability for session assignment
+  isAvailable    Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  /// Foreign key
+  userId String @unique
+
+  /// Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([isAvailable])
+  @@map("volunteer_profiles")
+}
+
+// ============================================================================
+// NOTES FOR DEVELOPMENT TEAM:
+// ============================================================================
+// 1. All messages must be encrypted before storing. Implement encryption layer.
+// 2. User.email and VolunteerProfile.specialization are sensitive—use VPN/secure channels only.
+// 3. SessionStatus.OPEN vs CLOSED controls visibility of session to volunteers.
+// 4. Consider adding audit logging for all message access (who viewed, when, why).
+// 5. Implement rate limiting on CrisisSession creation to prevent abuse.
+// 6. Regular backups of encrypted messages; test decryption in disaster recovery drills.

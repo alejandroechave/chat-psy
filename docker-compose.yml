@@ -1,0 +1,167 @@
+version: '3.9'
+
+services:
+  # ============================================================================
+  # PostgreSQL Database Service
+  # ============================================================================
+  db:
+    image: postgres:15-alpine
+    container_name: chat_psy_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-chat_psy_dev}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      # Persistence: data stored in named volume
+      - postgres_data:/var/lib/postgresql/data
+      # Optional: initialize database with SQL
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - chat_psy_network
+    restart: unless-stopped
+    
+    # Health check: ensures DB is ready before other services connect
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-chat_psy_dev}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # ============================================================================
+  # Next.js Web Application Service
+  # ============================================================================
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    container_name: chat_psy_web
+    environment:
+      # Node environment
+      NODE_ENV: production
+      
+      # Database connection
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-chat_psy_dev}
+      
+      # Authentication secrets
+      AUTH_SECRET: ${AUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      
+      # OAuth providers (optional)
+      GOOGLE_ID: ${GOOGLE_ID}
+      GOOGLE_SECRET: ${GOOGLE_SECRET}
+      
+      # Encryption
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      
+      # Next.js config
+      NEXT_TELEMETRY_DISABLED: 1
+    
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    
+    depends_on:
+      db:
+        condition: service_healthy
+      socket-server:
+        condition: service_started
+    
+    networks:
+      - chat_psy_network
+    
+    restart: unless-stopped
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 512M
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================================
+  # WebSocket/Real-time Chat Server
+  # ============================================================================
+  socket-server:
+    build:
+      context: ./socket-server
+      dockerfile: Dockerfile
+    container_name: chat_psy_socket
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      WEB_URL: http://web:3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-chat_psy_dev}
+    ports:
+      - "${SOCKET_PORT:-4000}:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - chat_psy_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  chat_psy_network:
+    driver: bridge
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  postgres_data:
+    driver: local

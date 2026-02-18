@@ -1,0 +1,58 @@
+# Git
+.git
+.gitignore
+.github
+
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Production
+.next
+out
+dist
+build
+
+# Development
+.env
+.env.local
+.env.*.local
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Tests
+__tests__
+*.test.ts
+*.test.tsx
+coverage
+.nyc_output
+
+# Documentation
+README.md
+SETUP.md
+PROJECT_SUMMARY.md
+ARCHITECTURE.md
+docs
+
+# Tools
+.prisma/dev.db
+prisma/*.db
+scripts/
+.turbo
+.cache
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore

@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+:root {
+  /* Calm Color Palette */
+  --color-primary: #4A90E2;
+  --color-primary-light: #6BA3E8;
+  --color-primary-lighter: #8DB4EE;
+  --color-primary-dark: #2E5FA3;
+  
+  --color-background: #F5F7FA;
+  --color-background-dark: #E8ECEF;
+  
+  --color-accent: #A8E6CF;
+  --color-accent-light: #C5F0D8;
+  --color-accent-lighter: #E0F5EA;
+  --color-accent-dark: #6DD4A8;
+  
+  /* Typography */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+@theme inline {
+  --color-primary: var(--color-primary);
+  --color-primary-light: var(--color-primary-light);
+  --color-primary-lighter: var(--color-primary-lighter);
+  --color-primary-dark: var(--color-primary-dark);
+  
+  --color-background: var(--color-background);
+  --color-background-dark: var(--color-background-dark);
+  
+  --color-accent: var(--color-accent);
+  --color-accent-light: var(--color-accent-light);
+  --color-accent-lighter: var(--color-accent-lighter);
+  --color-accent-dark: var(--color-accent-dark);
+}
+
+/* Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-background);
+  color: #1a1a1a;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 2.5rem;
+}
+
+h2 {
+  font-size: 2rem;
+}
+
+h3 {
+  font-size: 1.5rem;
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus Styles for Accessibility */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
