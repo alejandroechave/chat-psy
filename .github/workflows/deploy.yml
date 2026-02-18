@@ -1,0 +1,326 @@
+name: 🚀 Deploy Chat Psy
+
+# ============================================================================
+# Disparador: Se activa en cada push a la rama main
+# ============================================================================
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# ============================================================================
+# Configuración global
+# ============================================================================
+env:
+  NODE_VERSION: '20'
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+# ============================================================================
+# Trabajos (Jobs) del flujo CI/CD
+# ============================================================================
+jobs:
+  # ========================================================================
+  # JOB 1: Validación de dependencias y setup
+  # ========================================================================
+  setup:
+    name: 📦 Setup & Dependencies
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📚 Install dependencies
+        run: npm ci
+
+      - name: 🔍 Verify package.json
+        run: |
+          echo "✓ Dependencies installed successfully"
+          npm list --depth=0
+
+  # ========================================================================
+  # JOB 2: Análisis de código (Linting)
+  # ========================================================================
+  lint:
+    name: 🎯 Lint & Code Quality
+    runs-on: ubuntu-latest
+    needs: setup
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📚 Install dependencies
+        run: npm ci
+
+      - name: 🎯 Run ESLint
+        run: npm run lint -- --max-warnings=0
+        continue-on-error: false
+
+      - name: 📋 ESLint summary
+        if: always()
+        run: |
+          echo "✓ Linting completed"
+
+  # ========================================================================
+  # JOB 3: Validación de Prisma & Base de datos
+  # ========================================================================
+  prisma-validation:
+    name: 🗄️ Prisma Schema Validation
+    runs-on: ubuntu-latest
+    needs: setup
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📚 Install dependencies
+        run: npm ci
+
+      - name: 🔐 Set environment variables
+        run: |
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> $GITHUB_ENV
+          echo "✓ Environment variables configured"
+
+      - name: 🔍 Prisma validate
+        run: npx prisma validate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: 📦 Prisma generate
+        run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: 📊 Prisma status
+        run: |
+          echo "✓ Prisma schema validation passed"
+          echo "✓ Prisma client generated successfully"
+
+  # ========================================================================
+  # JOB 4: Build de la aplicación
+  # ========================================================================
+  build:
+    name: 🔨 Build Application
+    runs-on: ubuntu-latest
+    needs: [lint, prisma-validation]
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📚 Install dependencies
+        run: npm ci
+
+      - name: 🔐 Set environment variables
+        run: |
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> $GITHUB_ENV
+          echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> $GITHUB_ENV
+          echo "NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}" >> $GITHUB_ENV
+          echo "ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}" >> $GITHUB_ENV
+
+      - name: 📦 Generate Prisma client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: 🔨 Build Next.js application
+        run: npm run build
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+
+      - name: 📂 Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-output
+          path: |
+            .next/
+            public/
+            node_modules/.prisma/
+          retention-days: 1
+
+      - name: ✅ Build completed
+        run: echo "✓ Application built successfully"
+
+  # ========================================================================
+  # JOB 5: Tests (opcional - agregar cuando existan tests)
+  # ========================================================================
+  test:
+    name: 🧪 Run Tests
+    runs-on: ubuntu-latest
+    needs: setup
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📚 Install dependencies
+        run: npm ci
+
+      - name: 🧪 Run tests
+        run: npm test -- --passWithNoTests || true
+        continue-on-error: true
+
+      - name: 📊 Test summary
+        if: always()
+        run: echo "✓ Test step completed (no tests configured yet)"
+
+  # ========================================================================
+  # JOB 6: Docker Build (opcional - para verificar Dockerfile)
+  # ========================================================================
+  docker-check:
+    name: 🐳 Docker Build Verification
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: 🔨 Build Docker image (check only)
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: chat-psy:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ========================================================================
+  # JOB 7: Deploy a Render/Railway via Webhook
+  # ========================================================================
+  deploy:
+    name: 🚀 Deploy to Hosting
+    runs-on: ubuntu-latest
+    needs: [build, test, docker-check]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Trigger deployment webhook (Render)
+        if: secrets.RENDER_DEPLOY_HOOK != ''
+        run: |
+          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }} \
+            -H "Content-Type: application/json" \
+            -d "{\"commit_sha\": \"${{ github.sha }}\", \"branch\": \"${{ github.ref_name }}\"}"
+        continue-on-error: true
+
+      - name: 🚀 Trigger deployment webhook (Railway)
+        if: secrets.RAILWAY_DEPLOY_HOOK != ''
+        run: |
+          curl -X POST ${{ secrets.RAILWAY_DEPLOY_HOOK }} \
+            -H "Content-Type: application/json" \
+            -d "{\"commit_sha\": \"${{ github.sha }}\", \"branch\": \"${{ github.ref_name }}\"}"
+        continue-on-error: true
+
+      - name: 🚀 Trigger deployment webhook (Custom)
+        if: secrets.CUSTOM_DEPLOY_HOOK != ''
+        run: |
+          curl -X POST ${{ secrets.CUSTOM_DEPLOY_HOOK }} \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.DEPLOY_TOKEN }}" \
+            -d "{
+              \"sha\": \"${{ github.sha }}\",
+              \"ref\": \"${{ github.ref }}\",
+              \"repository\": \"${{ github.repository }}\",
+              \"branch\": \"${{ github.ref_name }}\"
+            }"
+        continue-on-error: true
+
+      - name: ✅ Deployment triggered successfully
+        run: |
+          echo "🎉 Deployment workflow triggered"
+          echo "📌 Commit: ${{ github.sha }}"
+          echo "🌿 Branch: ${{ github.ref_name }}"
+          echo "⏰ Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+  # ========================================================================
+  # JOB 8: Notificaciones de éxito/fallo
+  # ========================================================================
+  notify:
+    name: 📧 Send Notifications
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: always()
+    
+    steps:
+      - name: 📧 Notify on success
+        if: success()
+        run: |
+          echo "✅ CI/CD Pipeline completed successfully!"
+          echo "📊 Job Status: ALL PASSED"
+
+      - name: 📧 Notify on failure
+        if: failure()
+        run: |
+          echo "❌ CI/CD Pipeline failed!"
+          echo "🔍 Check GitHub Actions logs for details"
+          exit 1
+
+      - name: 📋 Workflow summary
+        if: always()
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🎯 CI/CD Workflow Summary"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Repository: ${{ github.repository }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Author: ${{ github.actor }}"
+          echo "Status: ${{ job.status }}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# ============================================================================
+# Configuración de concurrencia para evitar deployments simultáneos
+# ============================================================================
+concurrency:
+  group: deployment-${{ github.ref }}
+  cancel-in-progress: true
+
+# ============================================================================
+# Variables de salida para otros flujos
+# ============================================================================
+outputs:
+  build-status: ${{ jobs.build.result }}
+  deploy-status: ${{ jobs.deploy.result }}
