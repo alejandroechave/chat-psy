@@ -156,7 +156,7 @@ io.on('connection', (socket: Socket<SocketEventMap>) => {
         error: error.message,
       });
 
-      (socket as any).emit('error:message', {
+      (socket as unknown as Socket).emit('error:message', {
         code: 'SOCKET_ERROR',
         message: error.message,
       });

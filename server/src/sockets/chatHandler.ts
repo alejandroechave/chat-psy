@@ -12,7 +12,6 @@ import { Server, Socket } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import {
   ChatMessage,
-  CrisisSession,
   SocketEventMap,
 } from '../types/index.js';
 import { logger } from '../utils/logger.js';
@@ -60,8 +59,8 @@ export const initializeChatHandlers = (
   }
 
   const { userId, caseId, role, userName } = authData;
-  const typedSocket = socket as any;
-  const typedIo = io as any;
+  const typedSocket = socket as unknown as Socket<SocketEventMap>;
+  const typedIo = io as unknown as Server<SocketEventMap>;
 
   logger.info('Socket connected', { userId, role, socketId: socket.id });
 

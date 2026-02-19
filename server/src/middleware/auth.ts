@@ -22,7 +22,7 @@ export const validateUserRole = (
  * Validates required auth data and role
  */
 export const authMiddleware = (requiredRoles: UserRole[] = ['user', 'volunteer']) => {
-  return async (socket: Socket, next: (err?: Error) => void): Promise<void> => {
+  return async (socket: Socket, next: (_err?: Error) => void): Promise<void> => {
     try {
       // Get auth data from handshake query
       const authData = socket.handshake.auth as Partial<SocketAuthData> | undefined;
@@ -106,7 +106,7 @@ export const verifyAuthenticated = (
  * Middleware to verify user role
  */
 export const verifyRole = (requiredRoles: UserRole[]) => {
-  return (socket: Socket, next: (err?: Error) => void): void => {
+  return (socket: Socket, next: (_err?: Error) => void): void => {
     const authData = socket.data as unknown as Partial<SocketAuthData> | undefined;
 
     if (!authData?.role) {
