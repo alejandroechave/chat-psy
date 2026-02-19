@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getPrisma } from '@/lib/prisma';
 
 /**
  * Health Check Endpoint
@@ -20,7 +20,7 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     // Test database connectivity
-    await prisma.$queryRaw`SELECT 1`;
+    const prisma = await getPrisma();
 
     return NextResponse.json(
       {

@@ -33,10 +33,8 @@ export async function getPrisma() {
  * Disconnect Prisma Client on shutdown
  */
 export async function disconnectPrisma() {
-  if (prismaInstance && prismaInstance.$disconnect) {
-    await prismaInstance.$disconnect();
+  if (prismaInstance && typeof prismaInstance === 'object' && '$disconnect' in prismaInstance) {
+    await (prismaInstance as unknown as { $disconnect: () => Promise<void> }).$disconnect();
     prismaInstance = null;
   }
 }
-
-export default { getPrisma, disconnectPrisma };
