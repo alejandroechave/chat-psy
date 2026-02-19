@@ -71,7 +71,7 @@ export function useChatSocket(config: UseChatSocketConfig): UseChatSocketReturn 
   }, []);
 
   return {
-    socket: socketRef.current,
+    socket: null,
     isConnected,
     isAuthenticated,
     error,
