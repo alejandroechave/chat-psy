@@ -25,11 +25,6 @@ const eslintConfig = defineConfig([
         "warn",
         { prefer: "type-imports" },
       ],
-      // Require explicit return types on functions
-      "@typescript-eslint/explicit-function-return-types": [
-        "warn",
-        { allowExpressions: true },
-      ],
       // Accessibility best practices
       "jsx-a11y/alt-text": "error",
       "jsx-a11y/aria-props": "error",
