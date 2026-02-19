@@ -11,9 +11,9 @@
  *   const users = await prisma.user.findMany();
  */
 
-let prismaInstance: unknown = null;
+let prismaInstance: any = null;
 
-export async function getPrisma() {
+export async function getPrisma(): Promise<any> {
   if (!prismaInstance) {
     try {
       // @ts-expect-error: Dynamic import resolved only at runtime
