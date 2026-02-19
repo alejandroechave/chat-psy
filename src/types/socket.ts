@@ -27,25 +27,25 @@ export interface ChatMessage {
 }
 
 export type SocketEventMap = {
-  'connection': void;
-  'disconnect': string | undefined;
-  'auth:join': SocketAuthData;
-  'auth:authenticated': { success: boolean; message: string };
-  'auth:error': { code: string; message: string };
-  'message:send': { caseId: string; text: string; sender: MessageSender };
-  'message:receive': ChatMessage;
-  'message:ack': { messageId: string; status: MessageStatus };
-  'typing:start': { caseId: string; userName: string };
-  'typing:stop': { caseId: string };
-  'session:created': { id: string; caseId: string };
-  'session:closed': { caseId: string; reason?: string };
-  'user:online': { caseId: string; userId: string; userName: string; role: UserRole };
-  'user:offline': { caseId: string; userId: string };
-  'error:message': { code: string; message: string; details?: Record<string, unknown> };
-  'join-crisis-room': void;
-  'volunteer-join': { targetUserId: string };
-  'send-message': { text: string };
-  'subscribe:alerts': void;
-  'unsubscribe:alerts': void;
-  [event: string]: unknown;
+  'connection': [void];
+  'disconnect': [string | undefined];
+  'auth:join': [SocketAuthData];
+  'auth:authenticated': [{ success: boolean; message: string }];
+  'auth:error': [{ code: string; message: string }];
+  'message:send': [{ caseId: string; text: string; sender: MessageSender }];
+  'message:receive': [ChatMessage];
+  'message:ack': [{ messageId: string; status: MessageStatus }];
+  'typing:start': [{ caseId: string; userName: string }];
+  'typing:stop': [{ caseId: string }];
+  'session:created': [{ id: string; caseId: string }];
+  'session:closed': [{ caseId: string; reason?: string }];
+  'user:online': [{ caseId: string; userId: string; userName: string; role: UserRole }];
+  'user:offline': [{ caseId: string; userId: string }];
+  'error:message': [{ code: string; message: string; details?: Record<string, unknown> }];
+  'join-crisis-room': [(callback?: (ack: any) => void)];
+  'volunteer-join': [{ targetUserId: string }];
+  'send-message': [{ text: string }];
+  'subscribe:alerts': [void];
+  'unsubscribe:alerts': [void];
+  [event: string]: unknown[];
 };
