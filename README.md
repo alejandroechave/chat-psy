@@ -45,13 +45,6 @@ src/
 - npm, yarn, pnpm, o bun
 
 ### Instalación
-
-```bash
-# Clonar o navegar al proyecto
-cd chat-psy
-
-# Instalar dependencias (ya incluidas)
-npm install
 ```
 
 ### Desarrollo
@@ -59,13 +52,6 @@ npm install
 ```bash
 npm run dev
 ```
-
-Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
-
-### Compilación
-
-```bash
-npm run build
 npm run start
 ```
 
