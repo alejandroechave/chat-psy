@@ -42,4 +42,10 @@ export type SocketEventMap = {
   'user:online': { caseId: string; userId: string; userName: string; role: UserRole };
   'user:offline': { caseId: string; userId: string };
   'error:message': { code: string; message: string; details?: Record<string, unknown> };
+  'join-crisis-room': void;
+  'volunteer-join': { targetUserId: string };
+  'send-message': { text: string };
+  'subscribe:alerts': void;
+  'unsubscribe:alerts': void;
+  [event: string]: unknown;
 };
