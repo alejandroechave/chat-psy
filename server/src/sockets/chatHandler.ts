@@ -59,8 +59,9 @@ export const initializeChatHandlers = (
   }
 
   const { userId, caseId, role, userName } = authData;
-  const typedSocket = socket as unknown as Socket<SocketEventMap>;
-  const typedIo = io as unknown as Server<SocketEventMap>;
+  // Cast to any for Socket.io event handling - typed approach conflicts with Socket.io types
+  const typedSocket = socket as any;
+  const typedIo = io as any;
 
   logger.info('Socket connected', { userId, role, socketId: socket.id });
 
@@ -71,7 +72,6 @@ export const initializeChatHandlers = (
    * Event: join-crisis-room
    * Fired when a user in crisis first connects
    */
-  // @ts-expect-error - Socket.io type definition mismatch for custom events
   typedSocket.on('join-crisis-room', (callback?: (ack: any) => void) => {
     try {
       const roomName = getCrisisRoomName(userId);
