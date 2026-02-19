@@ -318,9 +318,3 @@ concurrency:
   group: deployment-${{ github.ref }}
   cancel-in-progress: true
 
-# ============================================================================
-# Variables de salida para otros flujos
-# ============================================================================
-outputs:
-  build-status: ${{ jobs.build.result }}
-  deploy-status: ${{ jobs.deploy.result }}
