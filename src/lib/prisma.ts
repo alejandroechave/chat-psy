@@ -11,14 +11,14 @@
  *   const users = await prisma.user.findMany();
  */
 
-let prismaInstance: any = null;
+let prismaInstance: unknown = null;
 
 export async function getPrisma() {
   if (!prismaInstance) {
     try {
-      // @ts-ignore: Dynamic import resolved only at runtime
+      // @ts-expect-error: Dynamic import resolved only at runtime
       const { default: Client } = await import('@prisma/client');
-      // @ts-ignore: Constructor signature resolved at runtime
+      // @ts-expect-error: Constructor signature resolved at runtime
       prismaInstance = new Client();
     } catch (error) {
       console.error('Failed to initialize Prisma Client:', error);

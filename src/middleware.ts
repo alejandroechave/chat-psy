@@ -9,9 +9,8 @@
  * - Handles session expiration gracefully
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { NextAuthConfig } from '@auth/nextjs';
-import authConfig from '@/auth';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
 /**
  * Routes that require authentication
@@ -28,7 +27,7 @@ const protectedRoutes = {
  * @param request - Next.js request object
  * @returns NextResponse (continue, redirect to login, or redirect to unauthorized)
  */
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Check if this route requires protection
