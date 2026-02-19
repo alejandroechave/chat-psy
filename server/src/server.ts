@@ -10,14 +10,17 @@
  */
 
 import 'dotenv/config.js';
-import express, { Express, Request, Response } from 'express';
-import { createServer, Server as HTTPServer } from 'http';
-import { Server as IOServer, Socket } from 'socket.io';
+import express from 'express';
+import type { Express, Request, Response } from 'express';
+import { createServer } from 'http';
+import type { Server as HTTPServer } from 'http';
+import { Server as IOServer } from 'socket.io';
+import type { Socket } from 'socket.io';
 import cors from 'cors';
 import { logger } from './utils/logger.js';
 import { authMiddleware, getAuthData } from './middleware/auth.js';
 import { initializeChatHandlers } from './sockets/chatHandler.js';
-import { SocketEventMap } from './types/index.js';
+import type { SocketEventMap } from './types/index.js';
 
 /**
  * Configuration from environment variables
@@ -156,7 +159,8 @@ io.on('connection', (socket: Socket<SocketEventMap>) => {
         error: error.message,
       });
 
-      (socket as unknown as Socket).emit('error:message', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (socket as any).emit('error:message', {
         code: 'SOCKET_ERROR',
         message: error.message,
       });

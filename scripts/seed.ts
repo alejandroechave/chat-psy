@@ -61,7 +61,7 @@ async function main() {
           // In production, ALWAYS hash passwords!
           // For dev: passwords are stored as-is (NOT SECURE)
           password: hashPassword(userData.password),
-          role: userData.role as any,
+          role: userData.role as 'ADMIN' | 'VOLUNTEER' | 'USER',
           emailVerified: new Date(),
         },
       });
@@ -80,7 +80,7 @@ async function main() {
                 ? 'AVAILABLE'
                 : 'BUSY',
             sessionsCompleted: Math.floor(Math.random() * 50),
-            averageRating: (Math.random() * 2 + 3).toFixed(1) as any,
+            averageRating: parseFloat((Math.random() * 2 + 3).toFixed(1)),
           },
         });
 

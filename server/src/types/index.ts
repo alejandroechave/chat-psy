@@ -51,7 +51,16 @@ export interface CrisisSession {
 }
 
 /**
- * Socket events - Strictly typed
+ * Callback types for Socket.io handlers
+ */
+export type MessageAckCallback = (_ack: { messageId: string; status: 'sent' | 'failed' }) => void;
+export type RoomAckCallback = (_ack: { success: boolean; roomName: string; message?: string; error?: string }) => void;
+export type VolunteerJoinCallback = (_ack: { success: boolean; roomName: string; targetUserId: string; message: string; error?: string }) => void;
+export type EmergencyCallback = (_ack: { success: boolean; emergencyId?: string; error?: string }) => void;
+export type AdminSubscribeCallback = (_ack?: { success: boolean; activeAdmins?: number; error?: string }) => void;
+
+/**
+ * Socket events - Strictly typed (non-array form)
  */
 export type SocketEventMap = {
   // Connection events
@@ -77,12 +86,33 @@ export type SocketEventMap = {
 
   // Typing indicators
   'typing:start': {
-    caseId: string;
-    userName: string;
+    caseId?: string;
+    userId?: string;
+    userName?: string;
+    timestamp?: Date;
   };
   'typing:stop': {
-    caseId: string;
+    caseId?: string;
+    userId?: string;
+    timestamp?: Date;
   };
+
+  // Room management events
+  'join-crisis-room': void;
+  'volunteer-join': { targetUserId: string };
+  'volunteer:joined': { volunteerId: string; volunteerName: string; timestamp: Date };
+
+  // Message events
+  'send-message': { text: string; targetUserId?: string };
+
+  // Emergency events
+  'emergency-trigger': { severity?: string; description?: string };
+  'emergency:triggered': { message: string; severity: string; timestamp: Date };
+  'emergency:alert': Record<string, unknown>;
+
+  // Admin subscription events
+  'admin:subscribe-emergencies': void;
+  'admin:unsubscribe-emergencies': void;
 
   // Session events
   'session:created': CrisisSession;
@@ -93,15 +123,22 @@ export type SocketEventMap = {
 
   // User events
   'user:online': {
-    caseId: string;
-    userId: string;
-    userName: string;
-    role: UserRole;
+    caseId?: string;
+    userId?: string;
+    userName?: string;
+    role?: UserRole;
+    timestamp?: Date;
   };
   'user:offline': {
-    caseId: string;
-    userId: string;
+    caseId?: string;
+    userId?: string;
+    userName?: string;
+    timestamp?: Date;
   };
+
+  // Alert events
+  'subscribe:alerts': void;
+  'unsubscribe:alerts': void;
 
   // Error events
   'error:message': {

@@ -97,7 +97,8 @@ export async function GET(req: NextRequest) {
     const userId = searchParams.get('userId');
     const volunteerId = searchParams.get('volunteerId');
 
-    const where: any = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: Record<string, unknown> = {};
     if (status) where.status = status;
     if (userId) where.userId = userId;
     if (volunteerId) where.volunteerId = volunteerId;

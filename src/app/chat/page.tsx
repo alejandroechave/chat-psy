@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { Container } from '@/components/ui';
-import { ChatRoom, MessageBubble } from '@/components/chat';
+import { ChatRoom } from '@/components/chat';
+import type { MessageBubble } from '@/components/chat';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
@@ -157,7 +158,7 @@ export default function ChatDemoPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 font-bold">✓</span>
-                    <span className="text-gray-700">Indicador "Escribiendo..."</span>
+                    <span className="text-gray-700">Indicador &quot;Escribiendo...&quot;</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 font-bold">✓</span>

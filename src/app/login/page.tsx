@@ -2,6 +2,7 @@
 
 import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
 
 /**
@@ -9,7 +10,8 @@ import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
  * Extracted to handle useSearchParams() within Suspense boundary
  */
 function LoginContent() {
-  const router = useRouter();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _router = useRouter();
   const searchParams = useSearchParams();
 
   const [email, setEmail] = useState('');
@@ -17,7 +19,8 @@ function LoginContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const callbackUrl = searchParams.get('callbackUrl') || '/';
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const paramError = searchParams.get('error');
 
   React.useEffect(() => {
@@ -198,9 +201,9 @@ export default function LoginPage() {
         {/* Footer */}
         <p className="text-center text-gray-600 text-sm mt-8">
           ¿Problemas para acceder?{' '}
-          <a href="/" className="text-blue-600 hover:text-blue-700 font-medium">
+          <Link href="/" className="text-blue-600 hover:text-blue-700 font-medium">
             Contacta soporte
-          </a>
+          </Link>
         </p>
       </div>
     </div>

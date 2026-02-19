@@ -133,10 +133,17 @@ export async function GET(req: NextRequest) {
     // Note: Content is still encrypted in the DB
     // Decrypt ONLY if necessary for the response, and consider auth
     // For now, just return metadata
-    const safeMessages = messages.map(({ content, ...rest }: any) => ({
-      ...rest,
-      hasContent: isValidEncryptedFormat(content),
-    }));
+    interface SafeMessage extends Omit<(typeof messages)[0], 'content'> {
+      hasContent: boolean;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const safeMessages: SafeMessage[] = messages.map((msg: any) => {
+      const { content, ...rest } = msg;
+      return {
+        ...rest,
+        hasContent: isValidEncryptedFormat(content),
+      };
+    });
 
     return Response.json(safeMessages, { status: 200 });
   } catch (error) {

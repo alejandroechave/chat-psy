@@ -1,11 +1,11 @@
 'use client';
 
-import { Container, Card, CardHeader, CardBody, Button } from '@/components/ui';
-import { ArrowLeft, Terminal, Download, Server, Zap } from 'lucide-react';
+import { Container, Card, CardHeader, CardBody } from '@/components/ui';
+import { ArrowLeft, Download, Server, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ServerDocsPage() {
-  const handleCopyCode = (code: string) => {
+  const _handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
   };
 

@@ -157,7 +157,7 @@ if (session.hasUnsentMessages) {
             <ul className="space-y-2 text-gray-700 ml-4">
               <li>✅ Gestión de mensajes (envío, retries, estado)</li>
               <li>✅ Historial de sesiones previas</li>
-              <li>✅ Manejo de desconexiones con "Reconectando..."</li>
+              <li>✅ Manejo de desconexiones con &quot;Reconectando...&quot;</li>
               <li>✅ <strong>Borrado Seguro</strong>: Limpieza completa de datos al cerrar sesión</li>
               <li>✅ Reintentos con backoff exponencial</li>
               <li>✅ TypeScript 100% tipado</li>
@@ -248,7 +248,7 @@ type ConnectionStatus =
           </CardHeader>
           <CardBody className="space-y-4">
             <p className="text-gray-700">
-              Cuando se pierde la conexión, la interfaz muestra "Reconectando..." de forma no intrusiva
+              Cuando se pierde la conexión, la interfaz muestra &quot;Reconectando...&quot; de forma no intrusiva
               mientras el hook intenta restaurar la conexión con backoff exponencial (máx. 30 segundos).
             </p>
             <div className="bg-gray-900 p-4 rounded-lg overflow-x-auto">

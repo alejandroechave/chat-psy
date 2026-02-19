@@ -20,7 +20,8 @@ import { getPrisma } from '@/lib/prisma';
 export async function GET() {
   try {
     // Test database connectivity
-    const prisma = await getPrisma();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _prisma = await getPrisma();
 
     return NextResponse.json(
       {

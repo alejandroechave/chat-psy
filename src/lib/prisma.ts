@@ -11,15 +11,16 @@
  *   const users = await prisma.user.findMany();
  */
 
-let prismaInstance: any = null;
+let prismaInstance: unknown = null;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function getPrisma(): Promise<any> {
   if (!prismaInstance) {
     try {
-      // @ts-expect-error: Dynamic import resolved only at runtime
-      const { default: Client } = await import('@prisma/client');
-      // @ts-expect-error: Constructor signature resolved at runtime
-      prismaInstance = new Client();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { default: Client } = await import('@prisma/client') as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      prismaInstance = new (Client as any)();
     } catch (error) {
       console.error('Failed to initialize Prisma Client:', error);
       throw new Error('Prisma Client is not available. Ensure DATABASE_URL is configured.');

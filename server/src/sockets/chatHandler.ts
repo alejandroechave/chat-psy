@@ -8,11 +8,16 @@
  * - Admins can monitor all rooms
  */
 
-import { Server, Socket } from 'socket.io';
+import type { Server, Socket } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
-import {
+import type {
   ChatMessage,
   SocketEventMap,
+  RoomAckCallback,
+  VolunteerJoinCallback,
+  MessageAckCallback,
+  EmergencyCallback,
+  AdminSubscribeCallback,
 } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 import { getAuthData } from '../middleware/auth.js';
@@ -45,11 +50,10 @@ const getCrisisRoomName = (userId: string): string => `crisis-${userId}`;
 
 /**
  * Initialize chat handlers for a socket connection
+ * Note: Socket.io event handlers use `as any` due to Socket.io v4 TypeScript limitations
+ * with callback-based event signatures. See https://github.com/socketio/socket.io/issues/4701
  */
-export const initializeChatHandlers = (
-  socket: Socket<SocketEventMap>,
-  io: Server<SocketEventMap>,
-): void => {
+export const initializeChatHandlers = (socket: Socket<SocketEventMap>, io: Server<SocketEventMap>): void => {
   const authData = getAuthData(socket);
 
   if (!authData) {
@@ -59,9 +63,6 @@ export const initializeChatHandlers = (
   }
 
   const { userId, caseId, role, userName } = authData;
-  // Cast to any for Socket.io event handling - typed approach conflicts with Socket.io types
-  const typedSocket = socket as any;
-  const typedIo = io as any;
 
   logger.info('Socket connected', { userId, role, socketId: socket.id });
 
@@ -72,7 +73,8 @@ export const initializeChatHandlers = (
    * Event: join-crisis-room
    * Fired when a user in crisis first connects
    */
-  typedSocket.on('join-crisis-room', (callback?: (ack: any) => void) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (socket as any).on('join-crisis-room', (callback?: RoomAckCallback) => {
     try {
       const roomName = getCrisisRoomName(userId);
 
@@ -102,14 +104,15 @@ export const initializeChatHandlers = (
       });
 
       // Acknowledge with room info
-      callback?.({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (callback as any)?.({
         success: true,
         roomName,
         message: `Crisis session started. Room: ${roomName}`,
       });
 
       // Notify others in room that user is online
-      typedSocket.broadcast.to(roomName).emit('user:online', {
+      (socket as any).broadcast.to(roomName).emit('user:online', {
         userId,
         userName,
         role: 'user',
@@ -118,8 +121,10 @@ export const initializeChatHandlers = (
 
     } catch (error) {
       logger.error('Error joining crisis room', { userId, error });
-      callback?.({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (callback as any)?.({
         success: false,
+        roomName: '', // Required by RoomAckCallback but error occurred
         error: 'Failed to join crisis room',
       });
     }
@@ -130,7 +135,8 @@ export const initializeChatHandlers = (
    * Event: volunteer-join
    * Payload: { targetUserId: string (the user in crisis they want to help) }
    */
-  typedSocket.on('volunteer-join', (payload: any, callback?: (ack: any) => void) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (socket as any).on('volunteer-join', (payload: SocketEventMap['volunteer-join'], callback?: VolunteerJoinCallback) => {
     try {
       if (role !== 'volunteer' && role !== 'admin') {
         throw new Error('Only volunteers and admins can join crisis rooms');
@@ -175,7 +181,8 @@ export const initializeChatHandlers = (
       });
 
       // Notify room members that volunteer arrived
-      typedIo.to(roomName).emit('volunteer:joined', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (io as any).to(roomName).emit('volunteer:joined', {
         volunteerId: userId,
         volunteerName: userName,
         timestamp: new Date(),
@@ -185,6 +192,9 @@ export const initializeChatHandlers = (
       logger.error('Error volunteer joining crisis room', { userId, error });
       callback?.({
         success: false,
+        roomName: '',
+        targetUserId: '',
+        message: '',
         error: error instanceof Error ? error.message : 'Failed to join room',
       });
     }
@@ -197,60 +207,56 @@ export const initializeChatHandlers = (
    * Event: send-message
    * Only goes to members in the same room (not persisted in RAM)
    */
-  typedSocket.on(
-    'send-message',
-    async (
-      payload: { text: string; targetUserId?: string },
-      callback?: (ack: { messageId: string; status: 'sent' | 'failed' }) => void,
-    ): Promise<void> => {
-      try {
-        const { text } = payload;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (socket as any).on('send-message', async (payload: SocketEventMap['send-message'], callback?: MessageAckCallback): Promise<void> => {
+    try {
+      const { text } = payload;
 
-        // Validate message
-        if (!text || text.trim() === '') {
-          logger.warn('Empty message attempted', { userId });
-          callback?.({
-            messageId: '',
-            status: 'failed',
-          });
-          return;
-        }
-
-        const messageId = uuidv4();
-        
-        // Build message object (not stored)
-        const message: ChatMessage = {
-          id: messageId,
-          caseId: caseId || payload.targetUserId || '',
-          userId,
-          text: text.trim(),
-          sender: role === 'volunteer' ? 'support' : 'user',
-          timestamp: new Date(),
-          status: 'sent',
-        };
-
-        // Determine room to send to
-        const roomName = payload.targetUserId
-          ? getCrisisRoomName(payload.targetUserId)
-          : getCrisisRoomName(userId);
-
-        // Emit to room only
-        typedIo.to(roomName).emit('message:receive', message);
-
-        logger.debug('Message sent to room', {
-          messageId,
-          userId,
-          roomName,
-          textLength: text.length,
+      // Validate message
+      if (!text || text.trim() === '') {
+        logger.warn('Empty message attempted', { userId });
+        callback?.({
+          messageId: '',
+          status: 'failed',
         });
-
-        callback?.({ messageId, status: 'sent' });
-      } catch (error) {
-        logger.error('Error sending message', { userId, error });
-        callback?.({ messageId: '', status: 'failed' });
+        return;
       }
+
+      const messageId = uuidv4();
+
+      // Build message object (not stored)
+      const message: ChatMessage = {
+        id: messageId,
+        caseId: caseId || payload.targetUserId || '',
+        userId,
+        text: text.trim(),
+        sender: role === 'volunteer' ? 'support' : 'user',
+        timestamp: new Date(),
+        status: 'sent',
+      };
+
+      // Determine room to send to
+      const roomName = payload.targetUserId
+        ? getCrisisRoomName(payload.targetUserId)
+        : getCrisisRoomName(userId);
+
+      // Emit to room only
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (io as any).to(roomName).emit('message:receive', message);
+
+      logger.debug('Message sent to room', {
+        messageId,
+        userId,
+        roomName,
+        textLength: text.length,
+      });
+
+      callback?.({ messageId, status: 'sent' });
+    } catch (error) {
+      logger.error('Error sending message', { userId, error });
+      callback?.({ messageId: '', status: 'failed' });
     }
-  );
+  });
 
   // ==================== EMERGENCY HANDLING ====================
 
@@ -259,7 +265,8 @@ export const initializeChatHandlers = (
    * Event: emergency-trigger
    * Notifies all admins immediately
    */
-  typedSocket.on('emergency-trigger', (payload: any, callback?: (ack: any) => void) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (socket as any).on('emergency-trigger', (payload: SocketEventMap['emergency-trigger'], callback?: EmergencyCallback) => {
     try {
       const emergencyId = uuidv4();
       const roomName = getCrisisRoomName(userId);
@@ -282,17 +289,20 @@ export const initializeChatHandlers = (
       });
 
       // Notify all admins (admins should listen to 'emergency:alert')
-      typedIo.emit('emergency:alert', emergencyAlert);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (io as any).emit('emergency:alert', emergencyAlert);
 
       // Notify room members
-      typedIo.to(roomName).emit('emergency:triggered', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (io as any).to(roomName).emit('emergency:triggered', {
         message: '🚨 EMERGENCY - Administrators have been notified',
         severity: emergencyAlert.severity,
         timestamp: new Date(),
       });
 
       // Send system message to room
-      typedIo.to(roomName).emit('message:receive', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (io as any).to(roomName).emit('message:receive', {
         id: uuidv4(),
         caseId: roomName,
         userId: 'SYSTEM',
@@ -320,7 +330,8 @@ export const initializeChatHandlers = (
    * Admin subscribes to emergency alerts
    * Event: admin:subscribe-emergencies
    */
-  typedSocket.on('admin:subscribe-emergencies', (callback?: (ack: any) => void) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (socket as any).on('admin:subscribe-emergencies', (callback?: AdminSubscribeCallback) => {
     try {
       if (role !== 'admin') throw new Error('Only admins can subscribe to emergencies');
       adminSubscriptions.add(socket.id);
@@ -332,7 +343,8 @@ export const initializeChatHandlers = (
     }
   });
 
-  typedSocket.on('admin:unsubscribe-emergencies', (callback?: (ack: any) => void) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (socket as any).on('admin:unsubscribe-emergencies', (callback?: AdminSubscribeCallback) => {
     try {
       adminSubscriptions.delete(socket.id);
       logger.info('Admin unsubscribed from emergency alerts', { adminId: userId, totalAdmins: adminSubscriptions.size });
@@ -345,20 +357,22 @@ export const initializeChatHandlers = (
 
   // ==================== TYPING INDICATORS ====================
 
-  typedSocket.on('typing:start', (payload: SocketEventMap['typing:start']): void => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (socket as any).on('typing:start', (_payload: SocketEventMap['typing:start']): void => {
     try {
       const roomName = getCrisisRoomName(userId);
-      typedSocket.broadcast.to(roomName).emit('typing:start', { userId, userName, timestamp: new Date() });
+      (socket as any).broadcast.to(roomName).emit('typing:start', { userId, userName, timestamp: new Date() });
       logger.debug('Typing indicator sent', { userId, roomName });
     } catch (error) {
       logger.error('Error sending typing indicator', { userId, error });
     }
   });
 
-  typedSocket.on('typing:stop', (payload: SocketEventMap['typing:stop']): void => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (socket as any).on('typing:stop', (_payload: SocketEventMap['typing:stop']): void => {
     try {
       const roomName = getCrisisRoomName(userId);
-      typedSocket.broadcast.to(roomName).emit('typing:stop', { userId, timestamp: new Date() });
+      (socket as any).broadcast.to(roomName).emit('typing:stop', { userId, timestamp: new Date() });
       logger.debug('Typing stopped', { userId, roomName });
     } catch (error) {
       logger.error('Error stopping typing', { userId, error });
@@ -367,15 +381,19 @@ export const initializeChatHandlers = (
 
   // ==================== DISCONNECT HANDLING ====================
 
-  typedSocket.on('disconnect', (reason: string): void => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (socket as any).on('disconnect', (_reason: string): void => {
     try {
-      const userRooms = Array.from(roomUsers.entries()).filter(([_, users]) => users.has(socket.id)).map(([room]) => room);
+      const userRooms = Array.from(roomUsers.entries())
+        .filter(([_, users]) => users.has(socket.id))
+        .map(([room]) => room);
 
-      logger.info('Socket disconnect', { userId, socketId: socket.id, reason, affectedRooms: userRooms.length });
+      logger.info('Socket disconnect', { userId, socketId: socket.id, affectedRooms: userRooms.length });
 
       // Send disconnect message to all affected rooms
       userRooms.forEach((roomName) => {
-        typedIo.to(roomName).emit('message:receive', {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (io as any).to(roomName).emit('message:receive', {
           id: uuidv4(),
           caseId: roomName,
           userId: 'SYSTEM',
@@ -389,9 +407,10 @@ export const initializeChatHandlers = (
         roomUsers.get(roomName)?.delete(socket.id);
 
         // Notify others
-        typedIo.to(roomName).emit('user:offline', { userId, userName, timestamp: new Date() });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (io as any).to(roomName).emit('user:offline', { userId, userName, timestamp: new Date() });
 
-        logger.debug('Disconnect notification sent', { roomName, reason });
+        logger.debug('Disconnect notification sent', { roomName });
       });
 
       // If user was in crisis, update room lastActivity
@@ -415,7 +434,7 @@ export const initializeChatHandlers = (
  * Get active room information
  * For REST API integration or admin dashboard
  */
-export const getActiveRoomInfo = (userId: string): any => {
+export const getActiveRoomInfo = (userId: string): Record<string, unknown> | null => {
   const roomName = getCrisisRoomName(userId);
   const room = activeRooms.get(roomName);
   const users = roomUsers.get(roomName);
@@ -437,7 +456,7 @@ export const getActiveRoomInfo = (userId: string): any => {
  * Get all active rooms
  * For admin dashboard
  */
-export const getAllActiveRooms = (): any[] => {
+export const getAllActiveRooms = (): Record<string, unknown>[] => {
   return Array.from(activeRooms.entries()).map(([roomName, room]) => ({
     roomName,
     ...room,

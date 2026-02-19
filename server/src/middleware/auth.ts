@@ -3,8 +3,8 @@
  * Validates user roles and authentication tokens
  */
 
-import { Socket } from 'socket.io';
-import { SocketAuthData, UserRole } from '../types/index.js';
+import type { Socket } from 'socket.io';
+import type { SocketAuthData, UserRole, SocketEventMap } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -22,7 +22,7 @@ export const validateUserRole = (
  * Validates required auth data and role
  */
 export const authMiddleware = (requiredRoles: UserRole[] = ['user', 'volunteer']) => {
-  return async (socket: Socket, next: (_err?: Error) => void): Promise<void> => {
+  return async (socket: Socket<SocketEventMap>, next: (_err?: Error) => void): Promise<void> => {
     try {
       // Get auth data from handshake query
       const authData = socket.handshake.auth as Partial<SocketAuthData> | undefined;
@@ -86,10 +86,7 @@ export const authMiddleware = (requiredRoles: UserRole[] = ['user', 'volunteer']
 /**
  * Middleware to verify socket is authenticated
  */
-export const verifyAuthenticated = (
-  socket: Socket,
-  next: (err?: Error) => void,
-): void => {
+export const verifyAuthenticated = (socket: Socket<SocketEventMap>, next: (err?: Error) => void): void => {
   const authData = socket.data as unknown as Partial<SocketAuthData> | undefined;
 
   if (!authData?.userId || !authData.caseId) {
@@ -106,7 +103,7 @@ export const verifyAuthenticated = (
  * Middleware to verify user role
  */
 export const verifyRole = (requiredRoles: UserRole[]) => {
-  return (socket: Socket, next: (_err?: Error) => void): void => {
+  return (socket: Socket<SocketEventMap>, next: (_err?: Error) => void): void => {
     const authData = socket.data as unknown as Partial<SocketAuthData> | undefined;
 
     if (!authData?.role) {
@@ -132,7 +129,7 @@ export const verifyRole = (requiredRoles: UserRole[]) => {
 /**
  * Helper to get auth data from socket
  */
-export const getAuthData = (socket: Socket): SocketAuthData | null => {
+export const getAuthData = (socket: Socket<SocketEventMap>): SocketAuthData | null => {
   const authData = socket.data as unknown as Partial<SocketAuthData> | undefined;
 
   if (authData?.userId && authData.caseId && authData.role && authData.userName) {
