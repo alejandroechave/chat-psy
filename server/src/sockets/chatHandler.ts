@@ -71,6 +71,7 @@ export const initializeChatHandlers = (
    * Event: join-crisis-room
    * Fired when a user in crisis first connects
    */
+  // @ts-expect-error - Socket.io type definition mismatch for custom events
   typedSocket.on('join-crisis-room', (callback?: (ack: any) => void) => {
     try {
       const roomName = getCrisisRoomName(userId);
